@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hammo & Hozzy Store — سكنات MTA</title>
+  <style>
+    :root{
+      --blue-900: #00008B;
+      --blue-950: #000070;
+      --ink: #EAF0FF;
+      --muted: #C7D2FE;
+      --card: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.15);
+      --shadow: 0 6px 20px rgba(0,0,0,0.4);
+      --radius: 14px;
+    }
+    body{
+      margin:0; font-family: system-ui, "Noto Sans Arabic", sans-serif;
+      color:var(--ink);
+      background: linear-gradient(180deg, var(--blue-900), #00005a);
+      min-height:100vh;
+      display:flex; flex-direction:column;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      border-bottom:1px solid var(--border);
+      background:rgba(0,0,0,0.25);
+      position:relative;
+    }
+    header h1{margin:0; font-size:28px;}
+    header img.menu-icon{
+      position:absolute;
+      left:20px;
+      width:32px;
+      height:32px;
+      cursor:pointer;
+    }
+
+    .search-box{
+      margin:20px auto;
+      display:flex;
+      justify-content:center;
+      gap:10px;
+    }
+    .search-box input{
+      padding:10px 14px;
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      outline:none;
+      min-width:200px;
+    }
+    .search-box button{
+      padding:10px 16px;
+      border:none;
+      border-radius:var(--radius);
+      background:var(--blue-950);
+      color:var(--ink);
+      cursor:pointer;
+      font-weight:bold;
+      box-shadow: var(--shadow);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+      gap:18px;
+      padding:20px;
+      flex:1;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      text-align:center;
+      padding:10px;
+    }
+    .card img{
+      max-width:100%;
+      height:auto;
+      border-radius:10px;
+      margin-bottom:8px;
+    }
+    .card span{
+      display:block;
+      font-weight:bold;
+      color:var(--muted);
+    }
+
+    footer{
+      text-align:center;
+      padding:12px;
+      border-top:1px solid var(--border);
+      background:rgba(0,0,0,0.25);
+      font-size:14px;
+      color:var(--muted);
+    }
+
+    /* القائمة الجانبية */
+    .sidebar{
+      position:fixed;
+      top:0;
+      left:-250px;
+      width:250px;
+      height:100%;
+      background:var(--blue-950);
+      box-shadow:var(--shadow);
+      padding-top:60px;
+      transition:0.3s;
+      z-index:1000;
+    }
+    .sidebar a{
+      display:block;
+      padding:14px 20px;
+      color:var(--ink);
+      text-decoration:none;
+      font-weight:bold;
+      border-bottom:1px solid var(--border);
+    }
+    .sidebar a:hover{
+      background:rgba(255,255,255,0.1);
+    }
+    .sidebar.open{left:0;}
+  </style>
+</head>
+<body>
+  <header>
+    <img src="menu.png" alt="Menu" class="menu-icon" onclick="toggleMenu()" />
+    <h1>سكنات MTA — Hammo & Hozzy Store</h1>
+  </header>
+
+  <div class="search-box">
+    <input type="number" id="skinId" placeholder="أدخل رقم السكن (0 - 312)" min="0" max="312" />
+    <button onclick="showSkin()">عرض</button>
+  </div>
+
+  <div class="grid" id="skinsGrid">
+    <!-- سيتم توليد البطاقات هنا -->
+  </div>
+
+  <footer>
+    © <span id="year"></span> Hammo & Hozzy Store
+  </footer>
+
+  <!-- القائمة الجانبية -->
+  <div class="sidebar" id="sidebar">
+    <a href="index.html">الرئيسية</a>
+    <a href="skins.html">MTA Skins</a>
+    <a href="social.html">التواصل</a>
+  </div>
+
+  <script>
+    const skinsGrid = document.getElementById('skinsGrid');
+
+    /**
+     * قائمة الموديلات (من 0 إلى 312) مأخوذة طبق الأصل من MTA Wiki (All Skins Page).
+     * القيم الفارغة ("") تعني أن الـ ID مصنّف كـ Unused على الويكي (ستعرض "غير مستخدم").
+     */
+    const skinModelNames = [
+      "cj","truth","maccer","cdeput","sfpdm1","bb","wfycrp","male01","wmycd2","bfori",
+      "bfost","vbfycrp","bfyri","bfyst","bmori","bmost","bmyap","bmybu","bmybe","bmydj",
+      "bmyri","bmycr","bmyst","wmybmx","wbdyg1","wbdyg2","wmybp","wmycon","bmydrug","wmydrug",
+      "hmydrug","dwfolc","dwmolc1","dwmolc2","dwmylc1","hmogar","wmygol1","wmygol2","hfori","hfost",
+      "hfyri","hfyst","suzie","hmori","hmost","hmybe","hmyri","hmycr","hmyst","omokung",
+      "wmymech","bmymoun","wmymoun","ofori","ofost","ofyri","ofyst","omori","omost","omyri",
+      "omyst","wmyplt","wmopj","bfypro","hfypro","vwmyap","bmypol1","bmypol2","wmoprea","sbfyst",
+      "wmosci","wmysgrd","swmyhp1","swmyhp2","","swfopro","wfystew","swmotr1","wmotr1","bmotr1",
+      "vbmybox","vwmybox","vhmyelv","vbmyelv","vimyelv","vwfypro","vhfyst","vwfyst1","wfori","wfost",
+      "wfyjg","wfyri","wfyro","wfyst","wmori","wmost","wmyjg","wmylg","wmyri","wmyro",
+      "wmycr","wmyst","ballas1","ballas2","ballas3","fam1","fam2","fam3","lsv1","lsv2",
+      "lsv3","maffa","maffb","mafboss","vla1","vla2","vla3","triada","triadb","lvpdm1","triboss",
+      "dnb1","dnb2","dnb3","vmaff1","vmaff2","vmaff3","vmaff4","dnmylc","dnfolc1","dnfolc2",
+      "dnfylc","dnmolc1","dnmolc2","sbmotr2","swmotr2","sbmytr3","swmotr3","wfybe","bfybe","hfybe",
+      "sofybu","sbmyst","sbmycr","bmycg","wfycrk","hmycm","wmybu","bfybu","","wfybu","dwfylc1",
+      "wfypro","wmyconb","wmybe","wmypizz","bmobar","cwfyhb","cwmofr","cwmohb1","cwmohb2","cwmyfr",
+      "cwmyhb1","bmyboun","wmyboun","wmomib","bmymib","wmybell","bmochil","sofyri","somyst","vwmybjd",
+      "vwfycrp","sfr1","sfr2","sfr3","bmybar","wmybar","wfysex","wmyammo","bmytatt","vwmycr",
+      "vbmocd","vbmycr","vhmycr","sbmyri","somyri","somybu","swmyst","wmyva","copgrl3","gungrl3",
+      "mecgrl3","nurgrl3","crogrl3","gangrl3","cwfofr","cwfohb","cwfyfr1","cwfyfr2","cwmyhb2","dwfylc2",
+      "dwmylc2","omykara","wmykara","wfyburg","vwmycd","vhfypro","","omonood","omoboat","wfyclot","vwmotr1",
+      "vwmotr2","vwfywai","sbfori","swfyri","wmyclot","sbfost","sbfyri","sbmocd","sbmori","sbmost",
+      "shmycr","sofori","sofost","sofyst","somobu","somori","somost","swmotr5","swfori","swfost",
+      "swfyst","swmocd","swmori","swmost","shfypro","sbfypro","swmotr4","swmyri","smyst","smyst2",
+      "sfypro","vbfyst2","vbfypro","vhfyst3","bikera","bikerb","bmypimp","swmycr","wfylg","wmyva2",
+      "bmosec","bikdrug","wmych","sbfystr","swfystr","heck1","heck2","bmycon","wmycd1","bmocd",
+      "vwfywa2","wmoice","tenpen","pulaski","hern","dwayne","smoke","sweet","ryder","forelli",
+      "mediatr","laemt1","lvemt1","sfemt1","lafd1","lvfd1","sffd1","lapd1","sfpd1","lvpd1",
+      "csher","lapdm1","swat","fbi","army","dsher","somyap","rose","paul","cesar",
+      "ogloc","wuzimu","torino","jizzy","maddogg","cat","claude","ryder2","ryder3","emmet",
+      "andre","kendl","jethro","zero","tbone","sindaco","janitor","bbthin","smokev","psycho"
+    ];
+
+    // توليد كل السكنات
+    for(let i=0; i<=312; i++){
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const img = document.createElement('img');
+      // حالة خاصة: الصورة رقم 266 بتكون png
+      if(i === 266){
+        img.src = i + '.png';
+      } else {
+        img.src = i + '.jpg';
+      }
+      img.alt = 'Skin ' + i;
+      // لو الصورة مش موجودة في المجلد - نشيل الكارت كله
+      img.onerror = () => { card.remove(); };
+
+      const span = document.createElement('span');
+      span.textContent = 'ID: ' + i;
+
+      // اسم الموديل - لو الاسم فارغ ("" ) معناته Unused حسب الويكي -> نعرض "غير مستخدم"
+      const modelSpan = document.createElement('span');
+      const m = skinModelNames[i];
+      modelSpan.textContent = 'الموديل: ' + ( (m === "" || typeof m === "undefined") ? "غير مستخدم" : m );
+
+      card.appendChild(img);
+      card.appendChild(span);
+      card.appendChild(modelSpan);
+      skinsGrid.appendChild(card);
+    }
+
+    // البحث عن سكن برقم ID
+    function showSkin(){
+      const id = document.getElementById('skinId').value;
+      if(id === '' || isNaN(id) || id < 0 || id > 312){
+        alert('من فضلك أدخل رقم صحيح بين 0 و 312');
+        return;
+      }
+      // نبحث عن البطاقة التي تحمل الـ ID المطلوب
+      const cards = document.querySelectorAll('.card');
+      let target = null;
+      for(const c of cards){
+        const txt = c.querySelector('span')?.textContent || '';
+        if(txt.includes('ID: ' + parseInt(id))){
+          target = c;
+          break;
+        }
+      }
+      if(target){
+        target.scrollIntoView({behavior:'smooth', block:'center'});
+        target.style.outline = '3px solid #00E5FF';
+        setTimeout(()=> target.style.outline = 'none', 2000);
+      } else {
+        alert('الصورة غير موجودة على الصفحة (قد تكون غير متوفرة في مجلد الصور).');
+      }
+    }
+
+    function toggleMenu(){
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
